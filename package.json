@@ -1,0 +1,28 @@
+{
+    "name": "@thinktomorrow/scroll-snap-controls",
+    "version": "0.1.0",
+    "description": "Adding controls to scroll snap carousels",
+    "main": "./lib/index.js",
+    "module": "./lib/index.esm.js",
+    "scripts": {
+        "build": "npx rollup --config"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/thinktomorrow/scroll-snap-controls.git"
+    },
+    "author": "Tijs Verellen",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/thinktomorrow/scroll-snap-controls/issues"
+    },
+    "homepage": "https://github.com/thinktomorrow/scroll-snap-controls#readme",
+    "dependencies": {
+        "lodash": "^4.17.21"
+    },
+    "devDependencies": {
+        "@rollup/plugin-eslint": "^9.0.5",
+        "eslint-config-airbnb-base": "^15.0.0",
+        "rollup": "^4.24.2"
+    }
+}
