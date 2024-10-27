@@ -1,6 +1,6 @@
 import _debounce from 'lodash/debounce';
 
-class Carousel {
+class ScrollSnapControls {
     constructor(
         container,
         trackSelector = '[data-carousel-track]',
@@ -24,7 +24,6 @@ class Carousel {
         if (this.previousButtons.length === 0) return;
 
         [this.currentItem] = this.items;
-        console.log('test');
 
         this._initButtons();
     }
@@ -147,14 +146,14 @@ class Carousel {
     }
 }
 
-const initCarousels = (containerSelector = '[data-carousel]') => {
+const initScrollSnapControls = (containerSelector = '[data-carousel]') => {
     const containers = Array.from(document.querySelectorAll(containerSelector));
 
     containers.forEach((container) => {
-        const carousel = new Carousel(container);
+        const scrollSnapControls = new ScrollSnapControls(container);
 
-        carousel.init();
+        scrollSnapControls.init();
     });
 };
 
-export { initCarousels as default };
+export { initScrollSnapControls as default };
