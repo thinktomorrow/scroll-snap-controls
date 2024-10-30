@@ -31,7 +31,7 @@ module.exports = {
         'global-require': 0,
         'no-new': 0,
         'default-param-last': 0,
-        'no-console': 1,
+        'no-console': ['warn', { allow: ['error'] }],
         'no-alert': 1,
         'operator-linebreak': 0,
     },

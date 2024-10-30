@@ -5,7 +5,8 @@
     "main": "./lib/index.js",
     "module": "./lib/index.esm.js",
     "scripts": {
-        "build": "npx rollup --config"
+        "build": "npx rollup --config",
+        "dev": "npx rollup --config --watch"
     },
     "repository": {
         "type": "git",

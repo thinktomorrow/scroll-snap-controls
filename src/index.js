@@ -1,74 +1,94 @@
 import _debounce from 'lodash/debounce';
 
+/**
+ * @class ScrollSnapControls
+ * @classdesc Adds scroll snapping controls to a container.
+ * @param {HTMLElement} container - The container element.
+ * @param {Object} options - The options object.
+ * @param {string} options.trackSelector - The selector for the track element.
+ * @param {string} options.itemSelector - The selector for the item elements.
+ * @param {string} options.controlAttribute - The attribute for the control elements.
+ */
 class ScrollSnapControls {
-    constructor(
-        container,
-        trackSelector = '[data-carousel-track]',
-        itemSelector = '[data-carousel-item]',
-        navNextSelector = '[data-carousel-nav-next]',
-        navPreviousSelector = '[data-carousel-nav-previous]'
-    ) {
+    constructor(container, options = {}) {
         this.container = container;
-        this.track = container.querySelector(trackSelector);
-        this.items = Array.from(container.querySelectorAll(itemSelector));
-        this.nextButtons = Array.from(container.querySelectorAll(navNextSelector));
-        this.previousButtons = Array.from(container.querySelectorAll(navPreviousSelector));
 
-        this.itemSelector = itemSelector;
+        this.trackSelector = options.trackSelector || '[data-ssc-track]';
+        this.itemSelector = options.itemSelector || '[data-ssc-item]';
+        this.controlAttribute = options.controlAttribute || 'data-ssc-control';
+
+        this.track = container.querySelector(this.trackSelector);
+        this.items = Array.from(container.querySelectorAll(this.itemSelector));
+        this.controls = Array.from(container.querySelectorAll(`[${this.controlAttribute}]`));
+
+        this.currentItem = null;
     }
 
     init() {
-        if (!this.track) return;
-        if (this.items.length === 0) return;
-        if (this.nextButtons.length === 0) return;
-        if (this.previousButtons.length === 0) return;
+        try {
+            if (!this.track) {
+                throw new Error('No track found');
+            }
 
-        [this.currentItem] = this.items;
+            if (this.items.length === 0) {
+                throw new Error('No items found');
+            }
 
-        this._initButtons();
+            if (this.controls.length === 0) {
+                throw new Error('No controls found');
+            }
+        } catch (error) {
+            return console.error(error);
+        }
+
+        this._setInitialCurrentItem();
+
+        this._handleControls();
+
+        return 0;
     }
 
-    _generateItemIds() {
-        this.items.forEach((item, index) => {
-            item.id = `carousel-item-${index}`;
+    _handleControls() {
+        this.controls.forEach((control) => {
+            const attribute = control.getAttribute(this.controlAttribute);
+            const actions = {
+                '>': () => this._next(),
+                '<': () => this._previous(),
+            };
+
+            if (actions[attribute]) {
+                control.addEventListener('click', actions[attribute]);
+            } else {
+                console.error(`Invalid attribute '${attribute}' on control element:\n ${control.outerHTML}`);
+            }
         });
+
+        this._toggleControls();
+        this._toggleControlsOnResize();
     }
 
-    _initButtons() {
-        this.nextButtons.forEach((button) => {
-            button.addEventListener('click', () => {
-                this._scrollToNextItem(this._getNextItem());
-            });
-        });
+    _toggleControls() {
+        const itemsFullyInContainer = this._getItemsFullyInContainer();
 
-        this.previousButtons.forEach((button) => {
-            button.addEventListener('click', () => {
-                this._scrollToPreviousItem(this._getPreviousItem());
-            });
-        });
+        if (itemsFullyInContainer.length === this.items.length) {
+            this.controls.forEach((control) => control.classList.add('hidden'));
+        } else {
+            this.controls.forEach((control) => control.classList.remove('hidden'));
+        }
+    }
 
-        this._toggleButtons();
-
+    _toggleControlsOnResize() {
         window.addEventListener(
             'resize',
             _debounce(() => {
-                this._toggleButtons();
+                this._toggleControls();
             }, 500)
         );
     }
 
-    _toggleButtons() {
-        const buttons = [...this.nextButtons, ...this.previousButtons];
-        const itemsFullyInViewport = this._getItemsFullyInViewport();
+    _next() {
+        const item = this._getNextItem();
 
-        if (itemsFullyInViewport.length === this.items.length) {
-            buttons.forEach((button) => button.classList.add('hidden'));
-        } else {
-            buttons.forEach((button) => button.classList.remove('hidden'));
-        }
-    }
-
-    _scrollToNextItem(item) {
         if (item === this.items[0]) {
             this.track.scrollLeft = 0;
         } else {
@@ -78,7 +98,9 @@ class ScrollSnapControls {
         this.currentItem = item;
     }
 
-    _scrollToPreviousItem(item) {
+    _previous() {
+        const item = this._getPreviousItem();
+
         if (item === this.items[this.items.length - 1]) {
             this.track.scrollLeft = 99999999;
         } else {
@@ -89,9 +111,9 @@ class ScrollSnapControls {
     }
 
     _getNextItem() {
-        const itemsFullyInViewport = this._getItemsFullyInViewport();
+        const itemsFullyInContainer = this._getItemsFullyInContainer();
 
-        if (itemsFullyInViewport.length === 0) {
+        if (itemsFullyInContainer.length === 0) {
             return this._getNextItemByIndex(this.items.indexOf(this.currentItem));
         }
 
@@ -100,60 +122,56 @@ class ScrollSnapControls {
         }
 
         return this._getNextItemByIndex(
-            this.items.findIndex((item) => item === itemsFullyInViewport[itemsFullyInViewport.length - 1])
+            this.items.findIndex((item) => item === itemsFullyInContainer[itemsFullyInContainer.length - 1])
         );
     }
 
     _getPreviousItem() {
-        const itemsFullyInViewport = this._getItemsFullyInViewport();
+        const itemsFullyInContainer = this._getItemsFullyInContainer();
 
-        if (itemsFullyInViewport.length === 0) {
-            return this._getPreviousItemById(this.items.indexOf(this.currentItem));
+        if (itemsFullyInContainer.length === 0) {
+            return this._getPreviousItemByIndex(this.items.indexOf(this.currentItem));
         }
 
         if (this.currentItem === this.items[0]) {
             return this.items[this.items.length - 1];
         }
 
-        return this._getPreviousItemById(this.items.findIndex((item) => item === itemsFullyInViewport[0]));
+        return this._getPreviousItemByIndex(this.items.findIndex((item) => item === itemsFullyInContainer[0]));
     }
 
-    _getNextItemByIndex(id) {
-        if (id + 1 < this.items.length) {
-            return this.items[id + 1];
+    _getNextItemByIndex(index) {
+        if (index + 1 < this.items.length) {
+            return this.items[index + 1];
         }
 
         return this.items[0];
     }
 
-    _getPreviousItemById(id) {
-        if (id - 1 >= 0) {
-            return this.items[id - 1];
+    _getPreviousItemByIndex(index) {
+        if (index - 1 >= 0) {
+            return this.items[index - 1];
         }
 
         return this.items[this.items.length - 1];
     }
 
-    _getItemsFullyInViewport() {
-        return this.items.filter((item) => this._isFullyInViewport(item));
+    _getItemsFullyInContainer() {
+        return this.items.filter((item) => this._isFullyInContainer(item));
     }
 
-    _isFullyInViewport(element) {
+    // TODO: How to make API more explicit, so it's clear that these calculations are done on the container,
+    // not on the viewport?
+    _isFullyInContainer(element) {
         const rect = element.getBoundingClientRect();
         const container = this.container.getBoundingClientRect();
 
         return rect.left >= 0 && rect.right <= container.width + container.left;
     }
+
+    _setInitialCurrentItem() {
+        [this.currentItem] = this.items;
+    }
 }
 
-const initScrollSnapControls = (containerSelector = '[data-carousel]') => {
-    const containers = Array.from(document.querySelectorAll(containerSelector));
-
-    containers.forEach((container) => {
-        const scrollSnapControls = new ScrollSnapControls(container);
-
-        scrollSnapControls.init();
-    });
-};
-
-export { initScrollSnapControls as default };
+export { ScrollSnapControls as default };
